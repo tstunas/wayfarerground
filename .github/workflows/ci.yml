@@ -4,7 +4,11 @@ on:
   push:
     branches:
       - main
+      - develop
   pull_request:
+    branches:
+      - main
+      - develop
 
 permissions:
   actions: read
@@ -14,6 +18,30 @@ jobs:
   main:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      # Determine the base branch based on PR target or current branch
+      # For git-flow: hotfix→main, others→develop
+      - name: Determine Nx base branch
+        id: base-branch
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # PR event: use the target branch
+            BASE_BRANCH="origin/${{ github.base_ref }}"
+          else
+            # Push event: use the current branch
+            CURRENT_BRANCH="${GITHUB_REF#refs/heads/}"
+            if [[ "$CURRENT_BRANCH" == "main" ]]; then
+              BASE_BRANCH="origin/main"
+            else
+              BASE_BRANCH="origin/develop"
+            fi
+          fi
+          echo "base_branch=$BASE_BRANCH" >> $GITHUB_OUTPUT
+          echo "Using base branch: $BASE_BRANCH"
       - uses: actions/checkout@v4
         with:
           filter: tree:0
@@ -57,8 +85,8 @@ jobs:
       # - run: pnpm exec nx record -- echo Hello World
       # When you enable task distribution, run the e2e-ci task instead of e2e
       # For Nx Cloud: use nx affected to only run tasks for changed files
-      # Use origin/main as base since main is not a local branch in CI
-      - run: pnpm exec nx affected --base=origin/main --head=HEAD -t lint test build e2e
+      # Base branch determined by git-flow strategy (main/develop)
+      - run: pnpm exec nx affected --base=${{ steps.base-branch.outputs.base_branch }} --head=HEAD -t lint test build e2e
       # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
       - run: pnpm exec nx fix-ci
         if: always()
