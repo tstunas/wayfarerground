@@ -25,14 +25,19 @@ jobs:
       # Connect your workspace by running "nx connect" and uncomment this line to enable task distribution
       # - run: npx nx start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="e2e-ci"
 
+      # Setup pnpm
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
       # Cache node_modules
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'pnpm'
 
-      - run: npm ci
-      - run: npx playwright install --with-deps
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps
 
       # Prepend any command with "nx record --" to record its logs to Nx Cloud
       # - run: npx nx record -- echo Hello World
