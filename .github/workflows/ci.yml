@@ -19,11 +19,10 @@ jobs:
           filter: tree:0
           fetch-depth: 0
 
-      # This enables task distribution via Nx Cloud
-      # Run this command as early as possible, before dependencies are installed
-      # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
-      # Connect your workspace by running "nx connect" and uncomment this line to enable task distribution
-      - run: pnpm dlx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="e2e"
+      # Setup Node first
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       # Setup pnpm
       - uses: pnpm/action-setup@v2
@@ -35,6 +34,11 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
+
+      # This enables task distribution via Nx Cloud
+      # Run this command as early as possible, before dependencies are installed
+      # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
+      - run: pnpm dlx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="e2e"
 
       - run: pnpm install --frozen-lockfile
 
@@ -55,5 +59,5 @@ jobs:
       # For Nx Cloud: use nx affected to only run tasks for changed files
       - run: pnpm exec nx affected -t lint test build e2e
       # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
-      - run: npx nx fix-ci
+      - run: pnpm exec nx fix-ci
         if: always()
